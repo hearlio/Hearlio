@@ -28,7 +28,7 @@ Hearlio is an AI companion that helps people navigate their relationships, frien
 
 ## 🚀 Live Demo
 
-👉 **[hearlio.infinityfreeapp.com](https://hearlio.infinityfreeapp.com)**
+👉 **[Live Demo](https://hearlio.github.io/hearlio)**
 
 ---
 
