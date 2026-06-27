@@ -97,7 +97,6 @@ See [LICENSE](./LICENSE) for full terms.
 For licensing, customization, or business inquiries:
 
 - 📧 Email: *rawais086@gmail.com*
-- 💼 Fiverr: *your Fiverr link here*
 - 🛒 Gumroad: *(https://cadet1231.gumroad.com/subscribe)*
 
 ---
