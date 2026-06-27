@@ -78,7 +78,7 @@ const API_KEY = "sk-ant-xxxxxxxxxxxxxxx";
 This software is available for purchase on **Gumroad**.  
 Buying a license allows you to use Hearlio on your own website or business.
 
-👉 **[Buy on Gumroad](#)** ← *(replace with your Gumroad link)*
+👉 **[Buy on Gumroad](#)** ← *(https://cadet1231.gumroad.com/l/upuvb)*
 
 ---
 
@@ -96,9 +96,9 @@ See [LICENSE](./LICENSE) for full terms.
 
 For licensing, customization, or business inquiries:
 
-- 📧 Email: *your email here*
+- 📧 Email: *rawais086@gmail.com*
 - 💼 Fiverr: *your Fiverr link here*
-- 🛒 Gumroad: *your Gumroad link here*
+- 🛒 Gumroad: *(https://cadet1231.gumroad.com/subscribe)*
 
 ---
 
