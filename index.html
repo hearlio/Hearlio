@@ -1,4 +1,4 @@
-<!-- © 2026 Awais Rashid. All rights reserved. Hearlio — Your Personal HeartSpace. Unauthorized copying or reselling of this code is prohibited. -->
+<!-- © 2026 Awais Rashid. All Rights Reserved. Hearlio — Your Personal HeartSpace. Unauthorized copying or reselling is prohibited. -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -14,7 +14,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 #root{width:100%;max-width:520px}
 input,button,select{font-family:inherit}
 @keyframes bounce{0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-6px)}}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
 @keyframes fadein{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 .msg{animation:fadein 0.3s ease}
 ::-webkit-scrollbar{width:4px}
@@ -28,9 +27,9 @@ const {useState,useRef,useEffect}=React;
 
 // ============================================================
 // 🔑 REPLACE THIS WITH YOUR ANTHROPIC API KEY
-// Get it free at: console.anthropic.com
+// Get it at: console.anthropic.com
 // ============================================================
-const API_KEY = "YOUR_ANTHROPIC_API_KEY_HERE";
+const API_KEY="YOUR_ANTHROPIC_API_KEY_HERE";
 
 const UC=[
   {bg:"#FBEAF0",text:"#72243E",border:"#F4C0D1"},
@@ -54,16 +53,16 @@ const MOODS=["😊","😐","😔","😤","😰"];
 const MLABELS=["Happy","Okay","Sad","Frustrated","Anxious"];
 const LANGUAGES=[
   {code:"en",label:"🇬🇧 English",sr:"en-US",dir:"ltr"},
-  {code:"ur",label:"🇵🇰 Urdu",   sr:"ur-PK",dir:"rtl"},
-  {code:"ar",label:"🇸🇦 Arabic", sr:"ar-SA",dir:"rtl"},
-  {code:"de",label:"🇩🇪 German", sr:"de-DE",dir:"ltr"},
-  {code:"fr",label:"🇫🇷 French", sr:"fr-FR",dir:"ltr"},
+  {code:"ur",label:"🇵🇰 Urdu",sr:"ur-PK",dir:"rtl"},
+  {code:"ar",label:"🇸🇦 Arabic",sr:"ar-SA",dir:"rtl"},
+  {code:"de",label:"🇩🇪 German",sr:"de-DE",dir:"ltr"},
+  {code:"fr",label:"🇫🇷 French",sr:"fr-FR",dir:"ltr"},
   {code:"es",label:"🇪🇸 Spanish",sr:"es-ES",dir:"ltr"},
 ];
 const LANG_INST={
-  en:"Always respond in English.",
-  ur:"ہمیشہ صرف اردو میں جواب دیں۔",
-  ar:"أجب دائماً باللغة العربية فقط.",
+  en:"Always respond in English only.",
+  ur:"صرف خالص اردو میں جواب دو۔ کوئی ہندی الفاظ یا دیوناگری رسم الخط بالکل استعمال نہ کرو۔ صرف اردو نستعلیق رسم الخط میں لکھو۔",
+  ar:"أجب دائماً باللغة العربية الفصحى فقط.",
   de:"Antworte immer nur auf Deutsch.",
   fr:"Réponds toujours uniquement en français.",
   es:"Responde siempre solo en español.",
@@ -79,15 +78,17 @@ function gid(){return Date.now().toString(36)+Math.random().toString(36).slice(2
 
 function speakText(text,gender,onEnd){
   window.speechSynthesis.cancel();
-  const clean=text.replace(/[\u{1F300}-\u{1FFFF}]/gu,"").replace(/[💕🌟💙💗🌸]/g,"").trim();
+  const clean=text.replace(/[\u{1F300}-\u{1FFFF}]/gu,"").replace(/[💕🌟💙💗🌸❤️]/g,"").trim();
+  if(!clean){if(onEnd)onEnd();return;}
   const u=new SpeechSynthesisUtterance(clean);
-  u.rate=0.95;u.pitch=gender==="female"?1.2:0.85;
+  u.rate=0.92;u.pitch=gender==="female"?1.15:0.85;u.volume=1;
   const voices=window.speechSynthesis.getVoices();
   const pref=voices.filter(v=>gender==="female"
     ?/female|samantha|victoria|karen|emma|aria|jenny|sonia|zira/i.test(v.name)
     :/male|david|mark|daniel|alex|james|ryan/i.test(v.name));
   if(pref.length)u.voice=pref[0];
   u.onend=onEnd||null;
+  u.onerror=onEnd||null;
   window.speechSynthesis.speak(u);
 }
 
@@ -102,6 +103,7 @@ async function callAI(system,messages){
     },
     body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:1000,system,messages})
   });
+  if(!res.ok)throw new Error("API error: "+res.status);
   const d=await res.json();
   if(d.error)throw new Error(d.error.message);
   return d.content?.map(b=>b.text||"").join("")||"";
@@ -126,39 +128,44 @@ function App(){
   const recRef=useRef(null);
   const bottomRef=useRef(null);
 
-  useEffect(()=>{window.speechSynthesis?.getVoices();return()=>window.speechSynthesis?.cancel();},[]);
+  useEffect(()=>{
+    window.speechSynthesis?.getVoices();
+    window.speechSynthesis?.addEventListener("voiceschanged",()=>window.speechSynthesis.getVoices());
+    return()=>window.speechSynthesis?.cancel();
+  },[]);
   useEffect(()=>{bottomRef.current?.scrollIntoView({behavior:"smooth"});},[active?.messages,loading]);
 
   const activeLang=LANGUAGES.find(l=>l.code===lang)||LANGUAGES[0];
 
   function buildSys(p){
-    return `You are Hearlio, a warm empathetic uplifting relationship and friendship guide. Tagline: "Your Personal HeartSpace". Speak like a caring wise best friend, never clinical. Use emojis naturally. User: ${p.name}, topic: ${p.topic}, mood: ${p.moodLabel} ${p.mood}.${p.memory?`\nMEMORY:\n${p.memory}`:""}\nBe warm, personal, actionable. Keep responses concise.\nLANGUAGE: ${LANG_INST[p.lang||"en"]}`;}
+    const l=p.lang||"en";
+    const urduNote=l==="ur"?"\nYOU MUST write every word in Urdu Nastaliq script only. Never use Hindi or Devanagari. Never mix languages.":"";
+    return `You are Hearlio, a warm empathetic uplifting relationship and friendship guide. Tagline: "Your Personal HeartSpace". Speak like a caring wise best friend, never clinical. Use emojis naturally. User: ${p.name}, topic: ${p.topic}, mood: ${p.moodLabel} ${p.mood}.${p.memory?`\nMEMORY:\n${p.memory}`:""}\nBe warm, personal, actionable. Keep responses concise and heartfelt.\nLANGUAGE RULE: ${LANG_INST[l]||LANG_INST["en"]}${urduNote}`;
+  }
 
-  function doSpeak(text){if(!vOn)return;setSpeaking(true);speakText(text,vGender,()=>setSpeaking(false));}
+  function doSpeak(text){
+    if(!vOn)return;
+    setSpeaking(true);
+    const unlock=new SpeechSynthesisUtterance("");
+    window.speechSynthesis.speak(unlock);
+    setTimeout(()=>speakText(text,vGender,()=>setSpeaking(false)),150);
+  }
 
   function toggleListen(){
     if(listening){try{recRef.current?.stop();}catch(e){}setListening(false);return;}
     const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-    if(!SR){alert("Voice input works only in Google Chrome. Please open this page in Chrome.");return;}
+    if(!SR){alert("Voice input works only in Google Chrome.");return;}
     try{
       const r=new SR();
-      r.lang=activeLang.sr;r.continuous=true;r.interimResults=true;
-      r.onstart=()=>setListening(true);
-      r.onresult=e=>{
-        let final="",interim="";
-        for(let i=0;i<e.results.length;i++){
-          if(e.results[i].isFinal)final+=e.results[i][0].transcript;
-          else interim+=e.results[i][0].transcript;
-        }
-        setInput(final||interim);
-      };
-      r.onerror=e=>{
-        setListening(false);
-        if(e.error==="not-allowed")alert("Microphone blocked. Click the lock icon in your browser address bar → Site Settings → Microphone → Allow. Then refresh.");
-      };
+      r.lang=activeLang.sr;
+      r.continuous=false;
+      r.interimResults=false;
+      r.onstart=()=>{setListening(true);setInput("");};
+      r.onresult=e=>{if(e.results.length>0)setInput(e.results[0][0].transcript);};
+      r.onerror=e=>{setListening(false);if(e.error==="not-allowed")alert("Microphone blocked.\n\n1. Click the lock icon in address bar\n2. Allow Microphone\n3. Refresh the page");};
       r.onend=()=>setListening(false);
       recRef.current=r;r.start();
-    }catch(e){alert("Could not start microphone. Please use Chrome.");setListening(false);}
+    }catch(e){alert("Could not start mic. Please use Chrome.");setListening(false);}
   }
 
   function saveProj(p){
@@ -180,7 +187,7 @@ function App(){
     }catch(e){
       const text=`Hey ${p.name}! 🌟 Welcome to your HeartSpace. Tell me what's on your heart 💕`;
       const upd={...p,messages:[{role:"assistant",text,colorIdx:0}],updatedAt:Date.now()};
-      setActive(upd);doSpeak(text);
+      setActive(upd);
       const list=[...projects,{id,name:p.name,topic,lang,preview:text.slice(0,60),updatedAt:Date.now()}];
       setProjectsState(list);sp(list);spr(id,upd);
     }
@@ -192,15 +199,15 @@ function App(){
     const userMsg={role:"user",text:msg,colorIdx:uIdx%4};
     setUIdx(i=>i+1);
     const newMsgs=[...(active.messages||[]),userMsg];
-    setActive(prev=>({...prev,messages:newMsgs}));setInput("");setLoading(true);
-    const apiMsgs=newMsgs.map(m=>({role:m.role==="assistant"?"assistant":"user",content:m.text}));
+    setActive(prev=>({...prev,messages:newMsgs}));
+    setInput("");setLoading(true);
     try{
+      const apiMsgs=newMsgs.map(m=>({role:m.role==="assistant"?"assistant":"user",content:m.text}));
       const text=await callAI(buildSys(active),apiMsgs);
       const final={...active,messages:[...newMsgs,{role:"assistant",text,colorIdx:aIdx%4}],updatedAt:Date.now()};
       setActive(final);setAIdx(i=>i+1);saveProj(final);doSpeak(text);
-    }catch{
-      const text="I'm here for you 💕 Please try again.";
-      setActive(prev=>({...prev,messages:[...newMsgs,{role:"assistant",text,colorIdx:aIdx%4}]}));
+    }catch(e){
+      setActive(prev=>({...prev,messages:[...newMsgs,{role:"assistant",text:"I'm here for you 💕 Please try again.",colorIdx:aIdx%4}]}));
     }
     setLoading(false);
   }
@@ -209,9 +216,10 @@ function App(){
     if(!active||loading)return;setLoading(true);
     const convo=active.messages.map(m=>`${m.role==="user"?active.name:"Hearlio"}: ${m.text}`).join("\n");
     try{
-      const memory=await callAI("",[{role:"user",content:`Extract bullet-point memory of key facts, relationships, emotions, issues for ${active.name}. Merge with existing.\n\nConversation:\n${convo}\n\nExisting:\n${active.memory||"None"}\n\nUpdated memory (bullets only):`}]);
+      const memory=await callAI("Extract concise bullet-point memory of key facts, relationships, emotions, ongoing issues. Merge with existing. Return bullets only.",[{role:"user",content:`Conversation:\n${convo}\n\nExisting:\n${active.memory||"None"}`}]);
       const final={...active,memory,updatedAt:Date.now()};setActive(final);spr(final.id,final);
-    }catch{}setLoading(false);
+    }catch(e){}
+    setLoading(false);
   }
 
   function openProject(id){const p=gpr(id);if(p){setActive(p);setLang(p.lang||"en");setUIdx(p.messages.filter(m=>m.role==="user").length%4);setAIdx(p.messages.filter(m=>m.role==="assistant").length%4);setScreen("chat");}}
@@ -366,24 +374,23 @@ function App(){
             <div ref={bottomRef}/>
           </div>
           <div style={{display:"flex",gap:8,marginTop:10,alignItems:"center"}}>
-            <div style={{flex:1,display:"flex",borderRadius:24,border:`1.5px solid ${listening?"#534AB7":"#ddd"}`,overflow:"hidden",background:"white",transition:"border-color 0.2s"}}>
-              <input value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&!e.shiftKey&&sendMessage()} placeholder={listening?"Listening... 🎙️":"Share what's on your heart..."} style={{flex:1,padding:"10px 14px",border:"none",fontSize:14,outline:"none",background:"transparent"}}/>
-              <button onClick={toggleListen} style={{padding:"0 14px",border:"none",background:listening?"#534AB7":"transparent",color:listening?"white":"#534AB7",cursor:"pointer",fontSize:18,display:"flex",alignItems:"center"}}>
+            <div style={{flex:1,display:"flex",borderRadius:24,border:`1.5px solid ${listening?"#534AB7":"#ddd"}`,overflow:"hidden",background:"white"}}>
+              <input value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&!e.shiftKey&&sendMessage()} placeholder={listening?"Listening... 🎙️":"Share what's on your heart..."} style={{flex:1,padding:"10px 12px",border:"none",fontSize:14,outline:"none",background:"transparent",minWidth:0}}/>
+              <button onClick={toggleListen} title={listening?"Stop":"Tap to speak"} style={{padding:"0 14px",border:"none",background:listening?"#534AB7":"#EEEDFE",color:listening?"white":"#534AB7",cursor:"pointer",fontSize:16,display:"flex",alignItems:"center",justifyContent:"center",minWidth:44,flexShrink:0}}>
                 {listening?"⏹":"🎙️"}
               </button>
             </div>
-            <button onClick={sendMessage} disabled={loading||!input.trim()} style={{padding:"10px 18px",borderRadius:24,border:"none",background:loading||!input.trim()?"#ccc":"#534AB7",color:"white",fontSize:14,cursor:loading||!input.trim()?"default":"pointer"}}>Send 💕</button>
+            <button onClick={sendMessage} disabled={loading||!input.trim()} style={{padding:"10px 14px",borderRadius:24,border:"none",background:loading||!input.trim()?"#ccc":"#534AB7",color:"white",fontSize:14,cursor:loading||!input.trim()?"default":"pointer",flexShrink:0}}>Send 💕</button>
           </div>
-          {listening&&<div style={{textAlign:"center",fontSize:12,color:"#534AB7",marginTop:6,animation:"pulse 1s infinite"}}>🎙️ Listening in {activeLang.label} — tap ⏹ when done</div>}
+          {listening&&<div style={{textAlign:"center",fontSize:12,color:"#534AB7",marginTop:6}}>🎙️ Listening in {activeLang.label} — tap ⏹ when done</div>}
           {listening&&input&&<button onClick={()=>{try{recRef.current?.stop();}catch(e){}setListening(false);setTimeout(sendMessage,300);}} style={{marginTop:6,padding:"8px",borderRadius:20,border:"none",background:"#534AB7",color:"white",fontSize:13,cursor:"pointer",width:"100%"}}>Send this message 💕</button>}
         </>
       )}
-          {/* Footer */}
-          <div style={{textAlign:"center",marginTop:16,fontSize:11,color:"#aaa"}}>
-            Built with ❤️ by <strong style={{color:"#534AB7"}}>Awais Rashid</strong> · 🌟 Hearlio
-          </div>
-        </div>
-      )}
+
+      {/* Footer */}
+      <div style={{textAlign:"center",marginTop:16,fontSize:11,color:"#bbb"}}>
+        Built with ❤️ by <strong style={{color:"#534AB7"}}>Awais Rashid</strong> · 🌟 Hearlio
+      </div>
     </div>
   );
 }
